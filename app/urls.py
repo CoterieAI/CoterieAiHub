@@ -24,10 +24,10 @@ from drf_yasg import openapi
 # TODO: adds AnnotationList and AnnotationDetail endpoint.
 schema_view = get_schema_view(
    openapi.Info(
-      title="HawkAIDoc API",
+      title="CoterieAi API",
       default_version='v1',
-      description="HawkAIDoc API description",
-      license=openapi.License(name="MavenCode License"),
+      description="CoterieAi API description",
+      license=openapi.License(name="CoterieAi License"),
    ),
    public=True,
 )
@@ -35,5 +35,6 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
+    path('api/', include('api.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]
