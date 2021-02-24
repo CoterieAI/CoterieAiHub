@@ -31,3 +31,19 @@ class Enrollments(models.Model):
     
     def __str__(self):
         return str(self.team)
+
+class Project(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.CharField(max_length=1000, default='')
+    team = models.ForeignKey(Team, related_name='projects', on_delete=models.CASCADE)
+    url = models.URLField(blank=True)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_archived= models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['id']
+    
+    def __str__(self):
+        return self.title   

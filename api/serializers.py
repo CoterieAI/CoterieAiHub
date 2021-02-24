@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Team, Enrollments
+from .models import Team, Enrollments, Project
 from .utils import Roles, default_role
 from authentication.models import User
 
@@ -42,6 +42,7 @@ class TeamInviteSerializer(serializers.ModelSerializer):
         return attrs
     
     def create(self, validated_data):
+        #eliminate the email filed as it is not in the model.
         validated_data.pop('email', None)
         
         return super().create(validated_data)
@@ -65,3 +66,17 @@ class EmailVerificationSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['token']
+
+#projects should have two urls, 1 serializer, two views
+#we should dynamically identify the team and the creator of a project
+#only team creator or users with owner role can create/delete projects
+#only invited peeps have priviledge of viewing list and detail views
+#contributors can only update, they can neither create nor destroy projects
+#List/Create -> api/team/projects
+#retrieve, update, destroy -> api/team/project/id
+
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ['id', 'title', 'description', "is_archived", 'url', 'team', 'creator', 'created_at', 'updated_at']
+        extra_kwargs = {'creator':{'read_only':True}, 'url':{'required':False}, 'team':{'read_only':True}, 'description':{'required':False}, "is_archived":{"required":False, "default":False}}
