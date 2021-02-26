@@ -33,9 +33,9 @@ class TeamInviteSerializer(serializers.ModelSerializer):
         extra_kwargs = {'status':{'read_only':True}, 'user':{'read_only':True}}
 
     def validate(self, attrs):
-        team = Team.objects.get(id=attrs['team'].id)
-        if not team.owner == self.context.get('request').user:
-            raise serializers.ValidationError({"error":"only team creators can make invites"})
+        #team = Team.objects.get(id=attrs['team'].id)
+        #if not team.owner == self.context.get('request').user:
+        #    raise serializers.ValidationError({"error":"only team creators can make invites"})
         
         if not User.objects.filter(email=attrs['email']).exists():
             raise serializers.ValidationError({"error":"no user matching this email was found"})
@@ -54,12 +54,12 @@ class TeamMemberUpdateSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'team', 'role', 'status', 'created_at', 'updated_at']
         extra_kwargs = {'status':{'read_only':True}}
 
-    def validate(self, attrs):
-        team = Team.objects.get(id=attrs['team'].id)
-        if not team.owner == self.context.get('request').user:
-            raise serializers.ValidationError({"error":"only team creators can make invites"})
-        
-        return attrs
+    #def validate(self, attrs):
+    #    team = Team.objects.get(id=attrs['team'].id)
+    #    if not team.owner == self.context.get('request').user:
+    #        raise serializers.ValidationError({"error":"only team creators can make invites"})
+    #    
+    #    return attrs
 
 class EmailVerificationSerializer(serializers.Serializer):
     token= serializers.CharField(max_length=555)

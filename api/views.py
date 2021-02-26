@@ -15,22 +15,24 @@ from django.urls import reverse
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from authentication.models import User
-from .custompermissions import IsTeamMember, IsOwnerOrContributor
+from .custompermissions import IsOwnerOrContributor, hasTeamDetailPermissions, CanInviteUser
+from django.utils.encoding import smart_bytes, smart_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 # Create your views here.
 
 
-class TeamApiView(GenericAPIView):
+class TeamListApiView(GenericAPIView):
     serializer_class = TeamSerializer
     permission_classes = (permissions.IsAuthenticated,)
     name = 'team-list'
 
     def get_queryset(self):
         """
-        This view should return a list of all the students
-        linked to the currently authenticated Instructor.
+        This view should return a list of all teams a user
+        created or was invited to.
         """
         user = self.request.user
-        return Team.objects.filter(Q(owner=user.id) | Q(members__id=user.id))
+        return Team.objects.filter(Q(owner=user.id) | Q(members__id=user.id)).distinct()
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -44,130 +46,55 @@ class TeamApiView(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class TeamDetailApiView(GenericAPIView):
+    serializer_class = TeamSerializer
+    permission_classes = (permissions.IsAuthenticated, hasTeamDetailPermissions)
+    name = 'team-detail'
+    lookup_field = 'team_id'
 
-class TeamInviteListAPIView(GenericAPIView):
-    serializer_class = TeamInviteSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-    name = 'membership-invite'
-
-    def get_queryset(self):
-        user = self.request.user
-        return Enrollments.objects.filter(team__owner=user.id)
+    def get(self, request, *args, **kwargs):
+        try:
+            team = Team.objects.get(id=kwargs['team_id'])
+            serializer = self.serializer_class(team)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Team.DoesNotExist:
+            return Response({"error":"team not found"}, status=status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
     
-    def post(self, request):
-        #validate serializer
-        #get user object from email
-        #save serilizer and fill user field with user object
-        #use serializer data to send email
-        serializer = self.serializer_class(data=request.data, context={"request":request})
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email')
-        user = User.objects.get(email=email)
-        serializer.save(user=user)
-
-        user_data = serializer.data
-        #{'id': 4, 'user': 3, 'team': 1, 'role': <Roles.VIEWER: 'VIEWER'>, 'status': 'PENDING'}
-        print(request.user.username)
-
-        
-        team =Team.objects.get(id=user_data['team'])
-        role = str(user_data['role']).lower()
-        inviter = request.user.username
-        payload ={'user':user_data['user'], 'team':user_data['team']}
-        token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS256')
-        current_site = get_current_site(request).domain
-        relativeLink = reverse('invite-acceptance')
-        abs_url = 'http://'+current_site+relativeLink+'?token='+str(token)
-        email_body = "Hi "+ " " + user.username +",\n " + inviter + " invited you to join "+ team.name + " as " + role + " follow the link below to accept invitation. link expires in 7 days \n" + abs_url
-
-        data ={'email_body':email_body, 'to_email':user.email, 'email_subject':'Team invitation'}
-
-        Util.send_email(data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def get(self, request):
-        data = self.get_queryset()
-        serializer = self.serializer_class(data, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-class AcceptEmailInvite(APIView):
-    serializer_class = EmailVerificationSerializer
-    token_param_config = openapi.Parameter('token', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
-
-    @swagger_auto_schema(manual_parameters=[token_param_config])
-    def get(self, request):
-        token = request.GET.get('token')
+    def patch(self, request, *args, **kwargs):
         try:
-            print(token)
-            print(f'looking to decode {token} with {settings.JWT_SECRET}')
-            payload = jwt.decode(token.decode('utf-8'), str(settings.JWT_SECRET))
-            invite = Enrollments.objects.get(user=payload['user'], team=payload['team'])
-            #incase a user follows the url twice:
-            if invite.status == STATUS.PENDING:
-                invite.status = STATUS.ACCEPTED
-                invite.save()
-
-            return Response({"Success": "invite status update successful"}, status=status.HTTP_200_OK)
-        except jwt.ExpiredSignatureError:
-            return Response({'error': 'Activation expired'})
-        except jwt.exceptions.DecodeError:
-            return Response({'error': 'invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+            team = Team.objects.get(id=kwargs['team_id'])
+            serializer = self.serializer_class(team, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Team.DoesNotExist:
+            return Response({"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({'error': 'invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-class TeamInviteDetailAPIView(GenericAPIView):
-    serializer_class = TeamMemberUpdateSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-    name = 'membership-modify'
-    lookup_field = 'invite_id'
-
-    def get(self, request, invite_id):
-        user = self.request.user
+    def delete(self, request, *args, **kwargs):
         try:
-            enrollment = Enrollments.objects.get(id=invite_id, team__owner=user.id)
+            team = Team.objects.get(id=kwargs['team_id'])
+            deleted = team.delete()
+            msg = {}
+            if deleted:
+                msg['success'] = "Deleted successfully"
+            else:
+                msg["failure"] = "Delete failed"
+            return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
+        except Team.DoesNotExist:
+            return Response({"error": "team does not exist"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            raise PermissionDenied({'msg':'you can only modify team invites for teams you own'})
-        serializer = self.serializer_class(enrollment)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def patch(self, request, invite_id):
-        user = self.request.user
-
-        try:
-            enrollment = Enrollments.objects.get(id=invite_id, team__owner=user.id)
-        except:
-            raise PermissionDenied({'msg':'you can only modify team invites for teams you own'})
-
-        serializer = self.serializer_class(enrollment, data=request.data, context={"request":request}, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    def delete(self, request, invite_id):
-        user = self.request.user
-
-        try:
-            enrollment = Enrollments.objects.get(id=invite_id, team__owner=user.id)
-        except enrollment.DoesNotExist:
-            return Response({"error": "team memeber does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
         
-        deleted = enrollment.delete()
-        if deleted:
-            msg['success'] = "Deleted successfully"
-        else:
-            msg["failure"] = "Delete failed"
-        return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
         
-
 
 class ProjectListView(GenericAPIView):
     #this view handles project listing and creation for a particular team
     serializer_class = ProjectSerializer
-    permission_classes = (permissions.IsAuthenticated, IsTeamMember)
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor)
     queryset = Project.objects.all()
 
     def get(self, request, *args, **kwargs):
@@ -231,3 +158,128 @@ class ProjectDetailView(GenericAPIView):
         else:
             msg["failure"] = "Delete failed"
         return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
+        
+
+
+class TeamInviteListAPIView(GenericAPIView):
+    serializer_class = TeamInviteSerializer
+    permission_classes = (permissions.IsAuthenticated, CanInviteUser)
+
+    def get_queryset(self):
+        user = self.request.user
+        return Enrollments.objects.filter(team__owner=user.id)
+    
+    def post(self, request, *args, **kwargs):
+        #validate serializer
+        #get user object from email
+        #save serilizer and fill user field with user object
+        #use serializer data to send email
+        serializer = self.serializer_class(data=request.data, context={"request":request})
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get('email')
+        user = User.objects.get(email=email)
+        serializer.save(user=user)
+
+        user_data = serializer.data
+        #{'id': 4, 'user': 3, 'team': 1, 'role': <Roles.VIEWER: 'VIEWER'>, 'status': 'PENDING'}
+
+        
+        team =Team.objects.get(id=user_data['team'])
+        role = str(user_data['role']).lower()
+        inviter = request.user.username
+        payload ={'user':user_data['user'], 'team':user_data['team']}
+        token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS256').decode('utf-8')
+        current_site = get_current_site(request).domain
+        relativeLink = reverse('invite-acceptance')
+        abs_url = 'http://'+current_site+relativeLink+'?token='+token
+        email_body = "Hi "+ " " + user.username +",\n " + inviter + " invited you to join "+ team.name + " as " + role + " follow the link below to accept invitation. link expires in 7 days \n" + abs_url
+
+        data ={'email_body':email_body, 'to_email':user.email, 'email_subject':'Team invitation'}
+
+        Util.send_email(data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get(self, request, *args, **kwargs):
+        data = Enrollments.objects.filter(team=kwargs['team_id'])
+        serializer = self.serializer_class(data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TeamInviteDetailAPIView(GenericAPIView):
+    serializer_class = TeamMemberUpdateSerializer
+    permission_classes = (permissions.IsAuthenticated, CanInviteUser)
+    name = 'membership-modify'
+    lookup_field = 'invite_id'
+
+    def get(self, request, *args, **kwargs):
+        try:
+            enrollment = Enrollments.objects.get(id=kwargs['invite_id'])
+        except Enrollments.DoesNotExist:
+            return Response({"error": "team member not found"}, status=status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.serializer_class(enrollment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            enrollment = Enrollments.objects.get(id=kwargs['invite_id'])
+
+        except Enrollments.DoesNotExist:
+            return Response({"error": "team member not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        except:
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.serializer_class(enrollment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def delete(self, request, invite_id):
+        user = self.request.user
+
+        try:
+            enrollment = Enrollments.objects.get(id=invite_id, team__owner=user.id)
+        except enrollment.DoesNotExist:
+            return Response({"error": "team memeber does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+        deleted = enrollment.delete()
+        if deleted:
+            msg['success'] = "Deleted successfully"
+        else:
+            msg["failure"] = "Delete failed"
+        return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
+
+
+
+class AcceptEmailInvite(APIView):
+    serializer_class = EmailVerificationSerializer
+    token_param_config = openapi.Parameter('token', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
+
+    @swagger_auto_schema(manual_parameters=[token_param_config])
+    def get(self, request):
+        token = request.GET.get('token')
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET, algorithm='HS256')
+            invite = Enrollments.objects.get(user=payload['user'], team=payload['team'])
+            # incase a user follows the url twice:
+            if invite.status == STATUS.PENDING:
+                invite.status = STATUS.ACCEPTED
+                invite.save()
+
+            return Response({"Success": "invite status update successful"}, status=status.HTTP_200_OK)
+        except jwt.ExpiredSignatureError:
+            return Response({'error': 'Activation expired'})
+        except jwt.exceptions.DecodeError:
+            return Response({'error': 'invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response({'error': 'invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+        
+
+
