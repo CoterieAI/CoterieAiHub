@@ -4,9 +4,9 @@ from rest_framework.generics import GenericAPIView, ListCreateAPIView, RetrieveU
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from rest_framework.exceptions import PermissionDenied
-from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer
+from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer
 from django.db.models import Q
-from .models import Team, Enrollments, Project
+from .models import Team, Enrollments, Project, AiModel
 from .utils import Util, Status as STATUS
 import jwt
 from drf_yasg import openapi
@@ -278,8 +278,14 @@ class AcceptEmailInvite(APIView):
             return Response({'error': 'invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class AiModelListView(ListCreateAPIView):
+    serializer_class = AiModelSerializer
+    permission_classes = (permissions.IsAdminUser,)
+    queryset = AiModel.objects.all()
 
 
-        
-
-
+class AiModelDetailView(RetrieveUpdateDestroyAPIView):
+    serializer_class = AiModelSerializer
+    permission_classes = (permissions.IsAdminUser,)
+    queryset = AiModel.objects.all()
+    lookup_url_kwarg = 'model_id'

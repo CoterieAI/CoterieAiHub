@@ -46,4 +46,21 @@ class Project(models.Model):
         ordering = ['id']
     
     def __str__(self):
-        return self.title   
+        return self.title
+
+class AiModel(models.Model):
+    sha = models.CharField(max_length=600)
+    author = models.CharField(max_length=1000)
+    email = models.EmailField()
+    date = models.CharField(max_length=600)
+    tag_name = models.CharField(max_length=600)
+    tag_commit_sha = models.CharField(max_length=600)
+    release_name = models.CharField(max_length=600)
+    publish_date = models.CharField(max_length=600)
+    bucket = models.CharField(max_length=600)
+    model_name = models.CharField(max_length=600)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.tag_name
