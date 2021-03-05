@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import  TeamListApiView, TeamDetailApiView, ProjectListView, ProjectDetailView, TeamInviteListAPIView,TeamInviteDetailAPIView, AcceptEmailInvite 
+from .views import  TeamListApiView, TeamDetailApiView, ProjectListView, ProjectDetailView, TeamInviteListAPIView,TeamInviteDetailAPIView, AcceptEmailInvite, AiModelListView, AiModelDetailView
 
 urlpatterns = [
     path('teams/', TeamListApiView.as_view(), name=TeamListApiView.name),
@@ -9,5 +9,6 @@ urlpatterns = [
     path('<int:team_id>/invites/', TeamInviteListAPIView.as_view(), name='team-invite-list'),
     path('<int:team_id>/invites/<int:invite_id>/', TeamInviteDetailAPIView.as_view(), name='team-invite-detail'),
     path('invite-acceptance/', AcceptEmailInvite.as_view(), name='invite-acceptance'),
-    
+    path('models/', AiModelListView.as_view(), name='models-list'),
+    path('models/<int:model_id>', AiModelDetailView.as_view(), name= 'model-detail')
 ]

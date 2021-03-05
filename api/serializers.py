@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Team, Enrollments, Project
+from .models import Team, Enrollments, Project, AiModel
 from .utils import Roles, default_role
 from authentication.models import User
 
@@ -80,3 +80,9 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = ['id', 'title', 'description', "is_archived", 'url', 'team', 'creator', 'created_at', 'updated_at']
         extra_kwargs = {'creator':{'read_only':True}, 'url':{'required':False}, 'team':{'read_only':True}, 'description':{'required':False}, "is_archived":{"required":False, "default":False}}
+
+
+class AiModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiModel
+        fields = ['sha', 'author', 'email', 'date', 'tag_name', 'tag_commit_sha', 'release_name', 'publish_date', 'bucket', 'model_name']
