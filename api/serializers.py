@@ -86,3 +86,9 @@ class AiModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = AiModel
         fields = ['sha', 'author', 'email', 'date', 'tag_name', 'tag_commit_sha', 'release_name', 'publish_date', 'bucket', 'model_name']
+
+class SeldonDeploymentSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=555)
+
+    class Meta:
+        name = ['name']

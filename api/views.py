@@ -4,10 +4,10 @@ from rest_framework.generics import GenericAPIView, ListCreateAPIView, RetrieveU
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from rest_framework.exceptions import PermissionDenied
-from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer
+from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer, SeldonDeploymentSerializer
 from django.db.models import Q
 from .models import Team, Enrollments, Project, AiModel
-from .utils import Util, Status as STATUS
+from .utils import Util, Status as STATUS, deploy_to_seldon
 import jwt
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -289,3 +289,18 @@ class AiModelDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAdminUser,)
     queryset = AiModel.objects.all()
     lookup_url_kwarg = 'model_id'
+
+class SeldonDepolymentAPIView(APIView):
+    serializer_class = SeldonDeploymentSerializer
+    name_param_config = openapi.Parameter('name', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
+
+    @swagger_auto_schema(manual_parameters=[name_param_config])
+    def get(self, request):
+        name = request.GET.get('name')
+        try:
+            #use the deploy function
+            deployemnt_url = deploy_to_seldon(name)
+
+            return Response({"url": str(deployemnt_url)}, status=status.HTTP_200_OK)
+        except:
+            return Response({'error': 'deployment failed'}, status=status.HTTP_400_BAD_REQUEST)
