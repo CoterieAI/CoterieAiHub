@@ -5,6 +5,8 @@ import time
 import json
 from os import path
 from kubernetes import client, config
+from kafka import KafkaProducer
+from django.conf import settings
 
 class Util:
     @staticmethod
@@ -102,3 +104,24 @@ def deploy_to_seldon(name):
     endpoint =  "http://" + gateway + f'/seldon/seldon/{name}/api/v1.0/predictions'
     print(endpoint)
     return endpoint
+
+
+def create_job(name):
+    """This function creates the JSON required for seldon deploy job"""
+
+    with open(path.join(path.dirname(__file__), "heart.json")) as f:
+         template = json.load(f)
+
+    template["metadata"]["name"] = name
+    template["spec"]['annotations']["project_name"] = name
+    template["spec"]["name"] = name
+
+    return template
+
+def kafka_json_serializer(data):
+        return json.dumps(data).encode('utf-8')
+
+broker = settings.KAFKA_BROKER
+
+producer = KafkaProducer(bootstrap_servers=[broker],
+                        value_serializer=kafka_json_serializer)

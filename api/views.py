@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer, SeldonDeploymentSerializer
 from django.db.models import Q
 from .models import Team, Enrollments, Project, AiModel
-from .utils import Util, Status as STATUS, deploy_to_seldon
+from .utils import Util, Status as STATUS, deploy_to_seldon, create_job, producer
 import jwt
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -299,8 +299,8 @@ class SeldonDepolymentAPIView(APIView):
         name = request.GET.get('name')
         try:
             #use the deploy function
-            deployemnt_url = deploy_to_seldon(name)
-
-            return Response({"url": str(deployemnt_url)}, status=status.HTTP_200_OK)
+            job_dict = create_job(name)
+            producer.send(settings.KAFKA_TOPIC, job_dict)
+            return Response({"success": "job submitted successfully"}, status=status.HTTP_200_OK)
         except:
             return Response({'error': 'deployment failed'}, status=status.HTTP_400_BAD_REQUEST)
