@@ -9,6 +9,8 @@ from django.db.models import Q
 from .models import Team, Enrollments, Project, AiModel
 from .utils import Util, Status as STATUS, deploy_to_seldon, create_job, producer
 import jwt
+import uuid
+from os import path
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from django.urls import reverse
@@ -18,6 +20,7 @@ from authentication.models import User
 from .custompermissions import IsOwnerOrContributor, hasTeamDetailPermissions, CanInviteUser
 from django.utils.encoding import smart_bytes, smart_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from kubernetes import client, config
 # Create your views here.
 
 
@@ -297,10 +300,36 @@ class SeldonDepolymentAPIView(APIView):
     @swagger_auto_schema(manual_parameters=[name_param_config])
     def get(self, request):
         name = request.GET.get('name')
+        data ={}
         try:
             #use the deploy function
-            job_dict = create_job(name)
-            producer.send(settings.KAFKA_TOPIC, job_dict)
+            data['payload'] = create_job(name)
+            data['key'] = str(uuid.uuid4())
+            print(data)
+            producer.send(settings.KAFKA_TOPIC, data) #settings.KAFKA_TOPIC
             return Response({"success": "job submitted successfully"}, status=status.HTTP_200_OK)
         except:
             return Response({'error': 'deployment failed'}, status=status.HTTP_400_BAD_REQUEST)
+
+class JobStatus(GenericAPIView):
+    serializer_class = SeldonDeploymentSerializer
+    def get(self, *args, **kwargs):
+        #get the job name
+        name = kwargs['job_name']
+        print("loading config...")
+        config.load_kube_config(path.join(path.dirname(__file__),'kube-config.yaml'))
+        print("succesfully loaded!")
+        #query the api for status
+        api = client.CustomObjectsApi()
+        print("checking status")
+        status = api.get_namespaced_custom_object_status(
+            group="machinelearning.seldon.io",
+            version="v1",
+            name=name,
+            namespace="seldon",
+            plural="seldondeployments",
+        )
+        if 'status' not in status:
+            return Response({"error": "a status does not exist for this job. please contact admin"})
+        status = status['status']['state']
+        return Response({"job status": status})
