@@ -123,5 +123,6 @@ def kafka_json_serializer(data):
 
 broker = settings.KAFKA_BROKER
 
-producer = KafkaProducer(bootstrap_servers=[broker],
-                        value_serializer=kafka_json_serializer)
+
+#producer = KafkaProducer(bootstrap_servers=[broker],
+#                        value_serializer=kafka_json_serializer)

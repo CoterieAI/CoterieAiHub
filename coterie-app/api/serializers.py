@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Team, Enrollments, Project, AiModel
+from .models import Team, Enrollments, Project, AiModel,   Deployment
 from .utils import Roles, default_role
 from authentication.models import User
 
@@ -85,10 +85,18 @@ class ProjectSerializer(serializers.ModelSerializer):
 class AiModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = AiModel
-        fields = ['sha', 'author', 'email', 'date', 'tag_name', 'tag_commit_sha', 'release_name', 'publish_date', 'bucket', 'model_name']
+        fields = ['id','model_name', 'gcr_url', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 class SeldonDeploymentSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=555)
 
     class Meta:
         name = ['name']
+
+
+class DeploymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Deployment
+        fields = ['id', 'deployment_id', 'name', 'model', 'project', 'description', 'service_endpoint', 'creator', 'created_at', 'updated_at']
+        read_only_fields = ['deployment_id','project', 'creator', 'service_endpoint', 'created_at', 'updated_at']

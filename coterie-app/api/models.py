@@ -49,18 +49,34 @@ class Project(models.Model):
         return self.title
 
 class AiModel(models.Model):
-    sha = models.CharField(max_length=600)
-    author = models.CharField(max_length=1000)
-    email = models.EmailField()
-    date = models.CharField(max_length=600)
-    tag_name = models.CharField(max_length=600)
-    tag_commit_sha = models.CharField(max_length=600)
-    release_name = models.CharField(max_length=600)
-    publish_date = models.CharField(max_length=600)
-    bucket = models.CharField(max_length=600)
+    #sha = models.CharField(max_length=600)
+    #author = models.CharField(max_length=1000)
+    #email = models.EmailField()
+    #date = models.CharField(max_length=600)
+    #tag_name = models.CharField(max_length=600)
+    #tag_commit_sha = models.CharField(max_length=600)
+    #release_name = models.CharField(max_length=600)
+    #publish_date = models.CharField(max_length=600)
+    #bucket = models.CharField(max_length=600)
     model_name = models.CharField(max_length=600)
+    gcr_url = models.URLField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.tag_name
+        return self.model_name
+
+
+class Deployment(models.Model):
+    name = models.CharField(max_length=100)
+    deployment_id = models.CharField(max_length=150)
+    description = models.TextField(blank=True, default='')
+    project = models.ForeignKey(Project, related_name='deployments', on_delete=models.CASCADE)
+    creator = models.ForeignKey(User, on_delete=models.CASCADE)
+    model = models.ForeignKey(AiModel, related_name='deployments', on_delete=models.CASCADE)
+    service_endpoint = models.URLField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
