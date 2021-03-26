@@ -162,3 +162,4 @@ JWT_SECRET = os.environ.get('JWT_SECRET')
 #KAFKA CONFIG
 KAFKA_BROKER=os.environ.get("KAFKA_BROKER")
 KAFKA_TOPIC=os.environ.get("KAFKA_TOPIC")
+KAFKA_API_URL = os.environ.get("KAFKA_API_URL")
