@@ -59,7 +59,7 @@ class AiModel(models.Model):
     #publish_date = models.CharField(max_length=600)
     #bucket = models.CharField(max_length=600)
     model_name = models.CharField(max_length=600)
-    gcr_url = models.URLField()
+    gcr_url = models.CharField(max_length=1000)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
