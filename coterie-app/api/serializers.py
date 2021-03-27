@@ -92,7 +92,7 @@ class AiModelSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 class SeldonDeploymentSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=555)
+    name = serializers.CharField(max_length=555, read_only=True)
 
     class Meta:
         name = ['name']

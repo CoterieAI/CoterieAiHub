@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import  TeamListApiView, TeamDetailApiView, ProjectListView, ProjectDetailView, TeamInviteListAPIView,TeamInviteDetailAPIView, AcceptEmailInvite, AiModelListView, AiModelDetailView, SeldonDepolymentAPIView, JobStatus, DeploymentApiView, DeploymentDetailApiView
+from .views import  TeamListApiView, TeamDetailApiView, ProjectListView, ProjectDetailView, TeamInviteListAPIView,TeamInviteDetailAPIView, AcceptEmailInvite, AiModelListView, AiModelDetailView, JobStatus, DeploymentApiView, DeploymentDetailApiView
 
 urlpatterns = [
     path('teams/', TeamListApiView.as_view(), name=TeamListApiView.name),
@@ -11,8 +11,9 @@ urlpatterns = [
     path('invite-acceptance/', AcceptEmailInvite.as_view(), name='invite-acceptance'),
     path('models/', AiModelListView.as_view(), name='models-list'),
     path('models/<int:model_id>/', AiModelDetailView.as_view(), name= 'model-detail'),
-    path('seldon/', SeldonDepolymentAPIView.as_view(), name='seldon-deploy'),
-    path('staus/<str:job_name>/', JobStatus.as_view(), name='job-status'),
+    #path('seldon/', SeldonDepolymentAPIView.as_view(), name='seldon-deploy'),
+    #path('staus/<str:job_name>/', JobStatus.as_view(), name='job-status'),
     path('<int:team_id>/<int:proj_id>/deployments/', DeploymentApiView.as_view(), name='deployment-list'),
-    path('<int:team_id>/<int:proj_id>/deployments/<int:id>/', DeploymentDetailApiView.as_view(), name='deployments-detail' )
+    path('<int:team_id>/<int:proj_id>/deployments/<int:id>/', DeploymentDetailApiView.as_view(), name='deployments-detail' ),
+    path('<int:team_id>/<int:proj_id>/deployments/<int:id>/status/', JobStatus.as_view(), name='job-status' ),
 ]

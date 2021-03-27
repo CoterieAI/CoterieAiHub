@@ -7,9 +7,10 @@ from rest_framework.exceptions import PermissionDenied
 from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer, SeldonDeploymentSerializer, DeploymentSerializer
 from django.db.models import Q
 from .models import Team, Enrollments, Project, AiModel, Deployment
-from .utils import Util, Status as STATUS, deploy_to_seldon, create_job #, producer
+from .utils import Util, Status as STATUS, deploy_to_seldon, create_job
 import jwt
 import uuid
+import urllib3
 from os import path
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -21,7 +22,20 @@ from .custompermissions import IsOwnerOrContributor, hasTeamDetailPermissions, C
 from django.utils.encoding import smart_bytes, smart_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
+from google.cloud.container_v1 import ClusterManagerClient
+from google.oauth2 import service_account
 # Create your views here.
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+credentials = service_account.Credentials.from_service_account_file(settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=settings.SCOPES)
+cluster_manager_client = ClusterManagerClient(credentials=credentials)
+cluster = cluster_manager_client.get_cluster(settings.PROJECT_ID, settings.ZONE, settings.CLUSTER_ID)
+configuration = client.Configuration()
+configuration.host = "https://"+cluster.endpoint+":443"
+configuration.verify_ssl = False
+configuration.api_key = {"authorization": "Bearer " + credentials.token}
+client.Configuration.set_default(configuration)
 
 
 class TeamListApiView(GenericAPIView):
@@ -294,46 +308,40 @@ class AiModelDetailView(RetrieveUpdateDestroyAPIView):
     queryset = AiModel.objects.all()
     lookup_url_kwarg = 'model_id'
 
-class SeldonDepolymentAPIView(APIView):
-    serializer_class = SeldonDeploymentSerializer
-    name_param_config = openapi.Parameter('name', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
-
-    @swagger_auto_schema(manual_parameters=[name_param_config])
-    def get(self, request):
-        name = request.GET.get('name')
-        data ={}
-        try:
-            #use the deploy function
-            data['payload'] = create_job(name)
-            data['key'] = str(uuid.uuid4())
-            print(data)
-            producer.send(settings.KAFKA_TOPIC, data) #settings.KAFKA_TOPIC
-            return Response({"success": "job submitted successfully"}, status=status.HTTP_200_OK)
-        except:
-            return Response({'error': 'deployment failed'}, status=status.HTTP_400_BAD_REQUEST)
 
 class JobStatus(GenericAPIView):
     serializer_class = SeldonDeploymentSerializer
     def get(self, *args, **kwargs):
+        
         #get the job name
-        name = kwargs['job_name']
-        print("loading config...")
-        config.load_kube_config(path.join(path.dirname(__file__),'kube-config.yaml'))
-        print("succesfully loaded!")
+        #name = kwargs['job_name']
+        #config.load_kube_config(path.join(path.dirname(__file__),'kube-config.yaml'))
+       
         #query the api for status
-        api = client.CustomObjectsApi()
-        print("checking status")
-        status = api.get_namespaced_custom_object_status(
-            group="machinelearning.seldon.io",
-            version="v1",
-            name=name,
-            namespace="seldon",
-            plural="seldondeployments",
-        )
-        if 'status' not in status:
-            return Response({"error": "a status does not exist for this job. please contact admin"})
-        status = status['status']['state']
-        return Response({"job status": status})
+        #api/<int:team_id>/<int:proj_id>/deployments/<int:id>/status
+        if Deployment.objects.filter(id=kwargs['id'],project=kwargs['proj_id']).exists():
+            deployment = Deployment.objects.get(id=kwargs['id'],project=kwargs['proj_id'])
+            name = deployment.deployment_id
+            try:
+                api = client.CustomObjectsApi()
+                print("checking status")
+                job_status = api.get_namespaced_custom_object_status(
+                    group="machinelearning.seldon.io",
+                    version="v1",
+                    name=name,
+                    namespace="seldon",
+                    plural="seldondeployments",
+                )
+                if 'status' not in job_status:
+                    return Response({"error": "a status does not exist for this job. please contact admin"})
+                job_status = job_status['status']['state']
+                return Response({"job status": job_status})
+            except ApiException:
+                return Response({"error": "job does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            except:
+                return Response({'error': 'deployment failed'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "job does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
 
 #detail -> api/team_id/proj_id/deployments/id
 class DeploymentApiView(GenericAPIView):

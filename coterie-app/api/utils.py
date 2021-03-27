@@ -11,7 +11,7 @@ from django.conf import settings
 class Util:
     @staticmethod
     def send_email(data):
-        email = EmailMessage(subject=data['email_subject'], body=data['email_body'], to=[data['to_email']])
+        email = EmailMessage(subject=data['email_subject'], body=data['email_body'], from_email=settings.FROM_EMAIL, to=[data['to_email']])
         email.send()
 
 class Roles(models.TextChoices):
@@ -118,11 +118,3 @@ def create_job(name):
 
     return template
 
-def kafka_json_serializer(data):
-        return json.dumps(data).encode('utf-8')
-
-broker = settings.KAFKA_BROKER
-
-
-#producer = KafkaProducer(bootstrap_servers=[broker],
-#                        value_serializer=kafka_json_serializer)

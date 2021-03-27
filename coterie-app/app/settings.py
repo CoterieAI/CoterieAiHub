@@ -149,12 +149,21 @@ SWAGGER_SETTINGS = {
     }
 }
 
-#EMail Config
-EMAIL_USE_SSL = True
-EMAIL_HOST ='smtp.gmail.com'
-EMAIL_PORT= 465
-EMAIL_HOST_USER=os.environ.get('EMAIL_HOST_USER')
+#old EMail Config
+#EMAIL_USE_SSL = True
+#EMAIL_HOST ='smtp.gmail.com'
+#EMAIL_PORT= 465
+#EMAIL_HOST_USER=os.environ.get('EMAIL_HOST_USER')
+#EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+
+#new config
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_PORT = os.environ.get('EMAIL_PORT')
+EMAIL_USE_TLS = True
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND')
+FROM_EMAIL = os.environ.get('FROM_EMAIL')
 
 #JWT Secret:
 JWT_SECRET = os.environ.get('JWT_SECRET')
@@ -163,3 +172,10 @@ JWT_SECRET = os.environ.get('JWT_SECRET')
 KAFKA_BROKER=os.environ.get("KAFKA_BROKER")
 KAFKA_TOPIC=os.environ.get("KAFKA_TOPIC")
 KAFKA_API_URL = os.environ.get("KAFKA_API_URL")
+
+#k8s configs
+GOOGLE_APPLICATION_CREDENTIALS = os.path.join(BASE_DIR, "credentials/coterieai-project-2dbda6f3219a.json")
+PROJECT_ID = os.environ.get('PROJECT_ID')
+ZONE = os.environ.get('ZONE')
+CLUSTER_ID = os.environ.get('CLUSTER_ID')
+SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
