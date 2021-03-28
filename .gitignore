@@ -1,4 +1,6 @@
 db.sqlite3
+kube-config.yaml
 venv
 .env
 __pycache__
+credentials

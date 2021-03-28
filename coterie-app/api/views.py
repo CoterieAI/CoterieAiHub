@@ -4,21 +4,38 @@ from rest_framework.generics import GenericAPIView, ListCreateAPIView, RetrieveU
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from rest_framework.exceptions import PermissionDenied
-from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer
+from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer, SeldonDeploymentSerializer, DeploymentSerializer
 from django.db.models import Q
-from .models import Team, Enrollments, Project, AiModel
-from .utils import Util, Status as STATUS
+from .models import Team, Enrollments, Project, AiModel, Deployment
+from .utils import Util, Status as STATUS, deploy_to_seldon, create_job
 import jwt
+import uuid
+import urllib3
+from os import path
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from django.urls import reverse
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from authentication.models import User
-from .custompermissions import IsOwnerOrContributor, hasTeamDetailPermissions, CanInviteUser
+from .custompermissions import IsOwnerOrContributor, hasTeamDetailPermissions, CanInviteUser, IsAdminUserOrReadonly
 from django.utils.encoding import smart_bytes, smart_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from kubernetes import client, config
+from kubernetes.client.rest import ApiException
+from google.cloud.container_v1 import ClusterManagerClient
+from google.oauth2 import service_account
 # Create your views here.
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+credentials = service_account.Credentials.from_service_account_file(settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=settings.SCOPES)
+cluster_manager_client = ClusterManagerClient(credentials=credentials)
+cluster = cluster_manager_client.get_cluster(settings.PROJECT_ID, settings.ZONE, settings.CLUSTER_ID)
+configuration = client.Configuration()
+configuration.host = "https://"+cluster.endpoint+":443"
+configuration.verify_ssl = False
+configuration.api_key = {"authorization": "Bearer " + credentials.token}
+client.Configuration.set_default(configuration)
 
 
 class TeamListApiView(GenericAPIView):
@@ -246,6 +263,7 @@ class TeamInviteDetailAPIView(GenericAPIView):
             return Response({"error": "team memeber does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
         deleted = enrollment.delete()
+        msg = {}
         if deleted:
             msg['success'] = "Deleted successfully"
         else:
@@ -280,12 +298,115 @@ class AcceptEmailInvite(APIView):
 
 class AiModelListView(ListCreateAPIView):
     serializer_class = AiModelSerializer
-    permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (permissions.IsAuthenticated, IsAdminUserOrReadonly,)
     queryset = AiModel.objects.all()
 
 
 class AiModelDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = AiModelSerializer
-    permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (permissions.IsAuthenticated, IsAdminUserOrReadonly,)
     queryset = AiModel.objects.all()
     lookup_url_kwarg = 'model_id'
+
+
+class JobStatus(GenericAPIView):
+    serializer_class = SeldonDeploymentSerializer
+    def get(self, *args, **kwargs):
+        
+        #get the job name
+        #name = kwargs['job_name']
+        #config.load_kube_config(path.join(path.dirname(__file__),'kube-config.yaml'))
+       
+        #query the api for status
+        #api/<int:team_id>/<int:proj_id>/deployments/<int:id>/status
+        if Deployment.objects.filter(id=kwargs['id'],project=kwargs['proj_id']).exists():
+            deployment = Deployment.objects.get(id=kwargs['id'],project=kwargs['proj_id'])
+            name = deployment.deployment_id
+            try:
+                api = client.CustomObjectsApi()
+                print("checking status")
+                job_status = api.get_namespaced_custom_object_status(
+                    group="machinelearning.seldon.io",
+                    version="v1",
+                    name=name,
+                    namespace="seldon",
+                    plural="seldondeployments",
+                )
+                if 'status' not in job_status:
+                    return Response({"error": "a status does not exist for this job. please contact admin"})
+                job_status = job_status['status']['state']
+                return Response({"job status": job_status})
+            except ApiException:
+                return Response({"error": "job does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            except:
+                return Response({'error': 'deployment failed'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "job does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+
+#detail -> api/team_id/proj_id/deployments/id
+class DeploymentApiView(GenericAPIView):
+    serializer_class = DeploymentSerializer
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor)
+    
+    def get_queryset(self):
+        return Deployment.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        deployments = self.get_queryset().filter(project=kwargs['proj_id'])
+        serializer = self.serializer_class(deployments, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if Project.objects.filter(id=kwargs['proj_id'], team=kwargs['team_id']).exists():
+            project = Project.objects.get(id=kwargs['proj_id'], team=kwargs['team_id'])
+            serializer.is_valid(raise_exception=True)
+            serializer.save(project=project, creator=request.user)
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+        return Response(data={"error":"bad request"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeploymentDetailApiView(GenericAPIView):
+    serializer_class = DeploymentSerializer
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor) 
+    
+    def get_queryset(self):
+        return Deployment.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        try:
+            deployment = self.get_queryset().get(id=kwargs['id'])
+            serializer = self.serializer_class(deployment)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Deployment.DoesNotExist:
+            return Response({"error":"deployment not found"}, status=status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request, *args, **kwargs):
+        try:
+            deployment = self.get_queryset().get(id=kwargs['id'])
+            serializer = self.serializer_class(deployment, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Deployment.DoesNotExist:
+            return Response({"error":"deployment not found"}, status=status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            deployment = self.get_queryset().get(id=kwargs['id'])
+            deleted = deployment.delete()
+            msg = {}
+            if deleted:
+                msg['success'] = "Deleted successfully"
+            else:
+                msg["failure"] = "Delete failed"
+            return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
+        except Deployment.DoesNotExist:
+            return Response({"error": "deployment does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        except:
+            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)

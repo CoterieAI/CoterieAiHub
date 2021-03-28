@@ -103,5 +103,13 @@ class CanInviteUser(BasePermission):
             self.message = "only user with owner priviledge can perform this action"
             return is_owner or has_owner_priviledge
 
+class IsAdminUserOrReadonly(BasePermission):
+    message = "only admins can create or modify models"
+
+    def has_permission(self, request, view):
+        is_admin = request.user.is_superuser
+        if request.method in SAFE_METHODS:
+            return True
+        return is_admin
 
 
