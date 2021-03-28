@@ -16,8 +16,8 @@ export DB_USER="root"
 export DB_PASSWORD="12345678"
 #chmod +x ./cloud_sql_proxy.exe
 #./cloud_sql_proxy -instances=coterieai-project:us-central1:cote=tcp:3307 -credential_file="./credentials/coterieai-project-2dbda6f3219a.json"
-chmod +x ./cloud_sql_proxy.exe
-./cloud_sql_proxy.exe -instances=$MYSQL_CLOUD_INSTANCE=tcp:3306 -credential_file=$GOOGLE_APPLICATION_CREDENTIALS  &
+chmod +x ./cloud_sql_proxy
+./cloud_sql_proxy -instances=$MYSQL_CLOUD_INSTANCE=tcp:3306 -credential_file=$GOOGLE_APPLICATION_CREDENTIALS  &
 python manage.py makemigrations
 python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
+python manage.py runserver "0.0.0.0:8000"
