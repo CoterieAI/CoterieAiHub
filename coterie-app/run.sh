@@ -9,9 +9,14 @@ export KAFKA_API_URL="https://coterieai-producer-main-zl7x2jvd3a-uc.a.run.app"
 export PROJECT_ID="coterieai-project"
 export ZONE="us-central1-c"
 export CLUSTER_ID="clust"
+export MYSQL_CLOUD_INSTANCE="coterieai-project:us-central1:cote"
+export GOOGLE_APPLICATION_CREDENTIALS="./credentials/coterieai-project-2dbda6f3219a.json"
+
+#chmod +x ./cloud_sql_proxy.exe
+#./cloud_sql_proxy -instances=coterieai-project:us-central1:cote=tcp:3307 -credential_file="./credentials/coterieai-project-2dbda6f3219a.json"
 
 chmod +x ./cloud_sql_proxy.exe
-./cloud_sql_proxy -instances=coterieai-project:us-central1:cote=tcp:3307 -credential_file="./credentials/coterieai-project-2dbda6f3219a.json"
+./cloud_sql_proxy.exe -instances=$MYSQL_CLOUD_INSTANCE=tcp:3306 -credential_file=$GOOGLE_APPLICATION_CREDENTIALS  &
 
 python manage.py makemigrations
 python manage.py migrate
