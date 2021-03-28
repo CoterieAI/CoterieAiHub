@@ -16,6 +16,9 @@ export GOOGLE_APPLICATION_CREDENTIALS="./credentials/coterieai-project-2dbda6f32
 #./cloud_sql_proxy -instances=coterieai-project:us-central1:cote=tcp:3307 -credential_file="./credentials/coterieai-project-2dbda6f3219a.json"
 
 chmod +x ./cloud_sql_proxy.exe
+
+mkdir -p cloudsql
+
 ./cloud_sql_proxy.exe -instances=$MYSQL_CLOUD_INSTANCE=tcp:3306 -credential_file=$GOOGLE_APPLICATION_CREDENTIALS  &
 
 python manage.py makemigrations
