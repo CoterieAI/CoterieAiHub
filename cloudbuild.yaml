@@ -29,7 +29,7 @@ steps:
         - --image
         - gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-api:1.0.0
         - --port
-        - "8080"
+        - "8000"
         - --region
         - us-central1
         - --platform
