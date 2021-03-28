@@ -8,6 +8,8 @@ COPY ./coterie-app /app
 
 COPY ./requirements.txt /app
 
+COPY ./coterieai-project-2dbda6f3219a.json /app/credentials
+
 COPY cloud_sql_proxy.exe ./app
 
 WORKDIR /app

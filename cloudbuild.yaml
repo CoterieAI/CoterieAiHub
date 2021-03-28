@@ -5,31 +5,31 @@ steps:
         - cp
         - gs://coterieai-kafka/sa/coterieai-project-2dbda6f3219a.json
         - .
-    - id: coterieai-producer-build
+    - id: coterieai-api-build
       name: gcr.io/cloud-builders/docker
       args:
         - build
-        - --tag=gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-consumer:1.0.0
+        - --tag=gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-api:1.0.0
         - .
       wait_for:
         - download-serviceaccount
-    - id: coterieai-producer-packaging
+    - id: coterieai-api-packaging
       name: gcr.io/cloud-builders/docker
       args:
         - push
-        - gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-consumer:1.0.0
+        - gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-api:1.0.0
       waitFor:
-        - coterieai-producer-build
-    - id: coterieai-producer-cloudrun
+        - coterieai-api-build
+    - id: coterieai-api-cloudrun
       name: gcr.io/cloud-builders/gcloud
       args:
         - run
         - deploy
-        - coterieai-consumer-${BRANCH_NAME}
+        - coterieai-api-${BRANCH_NAME}
         - --image
-        - gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-consumer:1.0.0
+        - gcr.io/${PROJECT_ID}/${BRANCH_NAME}/coterieai-api:1.0.0
         - --port
-        - "5001"
+        - "8080"
         - --region
         - us-central1
         - --platform
@@ -38,4 +38,4 @@ steps:
         - --memory
         - 1028Mi
       wait_for:
-        - coterieai-producer-packaging
+        - coterieai-api-packaging
