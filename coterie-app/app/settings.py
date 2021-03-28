@@ -45,12 +45,14 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
+    'corsheaders',
     'api'
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -191,3 +193,6 @@ PROJECT_ID = os.environ.get('PROJECT_ID')
 ZONE = os.environ.get('ZONE')
 CLUSTER_ID = os.environ.get('CLUSTER_ID')
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
+
+#CORS CONFIG
+CORS_ORIGIN_ALLOW_ALL = True
