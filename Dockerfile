@@ -8,6 +8,8 @@ COPY ./coterie-app /app
 
 COPY ./requirements.txt /app
 
+COPY cloud_sql_proxy.exe ./app
+
 WORKDIR /app
 
 RUN pip install -r requirements.txt
