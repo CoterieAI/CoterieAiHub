@@ -3,4 +3,4 @@ kube-config.yaml
 venv
 .env
 __pycache__
-coterieai-project-2dbda6f3219a.json
+coterie-app/credentials/coterieai-project-2dbda6f3219a.json

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: coterieai-apihub-service
+  namespace: coteriehub
+  labels:
+    app: coterieai-apihub
+spec:
+  ports: 
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  selector:
+    app: coterieai-apihub
+  type: LoadBalancer
