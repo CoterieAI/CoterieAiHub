@@ -5,11 +5,12 @@ metadata:
   namespace: coteriehub
   labels:
     app: coterieai-apihub
+    kustomize.toolkit.fluxcd.io/checksum: 262afae7c513df48cec2c0fc82d5da53788dc11b
+    kustomize.toolkit.fluxcd.io/name: flux-system
+    kustomize.toolkit.fluxcd.io/namespace: flux-system
 spec:
-  ports: 
-  - protocol: TCP
-    port: 8000
-    targetPort: 8000
+  ports:
+  - port: 8000
+    name: http
   selector:
     app: coterieai-apihub
-  type: LoadBalancer
