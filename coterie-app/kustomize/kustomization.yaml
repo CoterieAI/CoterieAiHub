@@ -1,11 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - deployment.yaml
-  - service.yaml
-  - ingress.yaml
+- deployment.yaml
+- service.yaml
+- ingress.yaml
 namespace: coteriehubs
 images:
 - name: coterieaihub-gitops
   newName: gcr.io/coterieai-project/ui/coterieaiui
   newTag: e4d0157cdf075d974ed8bb0a25faf4d13d418c69
+- name: coterieaiui-gitops
+  newName: gcr.io/coterieai-project/coterieaihub/api
+  newTag: 29be01df2e61e3c7ccd85239ec532b3112813aa6
