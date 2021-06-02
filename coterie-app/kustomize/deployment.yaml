@@ -4,7 +4,7 @@ metadata:
   labels:
     app: coterieai-apihub
   name: coterieai-apihub
-  namespace: coteriehub
+  namespace: coteriehubs
 spec:
   replicas: 1
   selector:
@@ -21,15 +21,15 @@ spec:
         app: coterieai-apihub
     spec:
       containers:
-        - image: gcr.io/coterieai-project/coterieaihub/api:1.0.7
+        - image: coterieaihub-gitops
           imagePullPolicy: IfNotPresent
-          name: api
+          name: coterieaihub-gitops
 ---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: coterieai-apihub
-  namespace: coteriehub
+  namespace: coteriehubs
 spec:
   maxReplicas: 3
   metrics:

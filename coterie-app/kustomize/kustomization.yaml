@@ -4,3 +4,8 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+namespace: coteriehubs
+images:
+- name: coterieaihub-gitops
+  newName: gcr.io/coterieai-project/ui/coterieaiui
+  newTag: e4d0157cdf075d974ed8bb0a25faf4d13d418c69
