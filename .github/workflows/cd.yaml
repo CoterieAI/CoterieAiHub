@@ -42,7 +42,7 @@ jobs:
         PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
       run: |
        cd coterie-app/kustomize
-       kustomize edit set image coterieaiui-gitops=gcr.io/$PROJECT_ID/coterieaihub/api:$GITHUB_SHA
+       kustomize edit set image coterieaihub-gitops=gcr.io/$PROJECT_ID/coterieaihub/api:$GITHUB_SHA
        cat kustomization.yaml
         
     - name: Commit files
