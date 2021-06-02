@@ -12,6 +12,15 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v2
+    
+    - name: download from gcs
+      uses: actions-hub/gcloud@master
+      env:
+        PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
+        APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      with:
+        args: cp gs://coterieai-kafka/sa/coterieai-project-2dbda6f3219a.json coterie-app/kustomize
+        cli: gsutil
 
     - name: Build and push image
       uses: RafikFarhad/push-to-gcr-github-action@v3.0.2
