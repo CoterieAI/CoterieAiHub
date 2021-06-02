@@ -19,7 +19,7 @@ jobs:
         PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
         APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
       with:
-        args: cp gs://coterieai-kafka/sa/coterieai-project-2dbda6f3219a.json coterie-app/kustomize
+        args: cp gs://coterieai-kafka/sa/coterieai-project-2dbda6f3219a.json coterie-app/credentials
         cli: gsutil
 
     - name: Build and push image
