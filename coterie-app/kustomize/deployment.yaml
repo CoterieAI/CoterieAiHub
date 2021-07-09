@@ -59,7 +59,7 @@ spec:
           secretName: cloudsql-oauth-credentials
       - name: ssl-certs
         hostPath:
-            path: /etc/ssl/certs
+          path: /etc/ssl/certs
       - name: cloudsql
         emptyDir: {}
         # [END volumes]        
