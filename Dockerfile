@@ -1,22 +1,18 @@
-FROM python:3.9
+FROM gcr.io/google_appengine/python
 
-ENV pythonunbufferd 1
-
-RUN mkdir /app
+RUN virtualenv -p python3 /env
+ENV PATH /env/bin:$PATH
 
 COPY ./coterie-app /app
 
 COPY ./requirements.txt /app
 
-#COPY ./coterieai-project-2dbda6f3219a.json /app/credentials
-
-COPY cloud_sql_proxy ./app
+COPY cloud_sql_proxy /app
 
 WORKDIR /app
 
-RUN pip install -r requirements.txt
 
-#CMD python manage.py runserver 0.0.0.0:8000
-EXPOSE 8000
+RUN /env/bin/pip install --upgrade pip && /env/bin/pip install -r /app/requirements.txt
+ADD . /app
 
 ENTRYPOINT ["sh", "./run.sh"]

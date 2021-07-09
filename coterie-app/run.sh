@@ -9,19 +9,19 @@ export KAFKA_API_URL="35.202.207.9:15012"
 export PROJECT_ID="coterieai-project"
 export ZONE="us-central1-c"
 export CLUSTER_ID="coterie-dev-cluster"
-export MYSQL_CLOUD_INSTANCE="coterieai-project:us-central1:cote"
+export MYSQL_CLOUD_INSTANCE="coterieai-project:us-central1:coterie"
 export GOOGLE_APPLICATION_CREDENTIALS="./credentials/coterieai-pnoroject-2dbda6f3219a.json"
-export DB_NAME="django_db"
-export DB_USER="root"
-export DB_PASSWORD="12345678"
+# export DB_NAME="django_db"
+# export DB_USER="root"
+# export DB_PASSWORD="12345678"
 #chmod +x ./cloud_sql_proxy.exe
 #./cloud_sql_proxy -instances=coterieai-project:us-central1:cote=tcp:3307 -credential_file="./credentials/coterieai-project-2dbda6f3219a.json"
 
-chmod +x ./cloud_sql_proxy
+# chmod +x ./cloud_sql_proxy
 
-mkdir -p cloudsql
+# mkdir -p cloudsql
 
-./cloud_sql_proxy -instances=$MYSQL_CLOUD_INSTANCE=tcp:3306 -credential_file=$GOOGLE_APPLICATION_CREDENTIALS  &
+# ./cloud_sql_proxy -instances=$MYSQL_CLOUD_INSTANCE=tcp:3306 -credential_file=$GOOGLE_APPLICATION_CREDENTIALS  &
 
 python3 manage.py makemigrations
 python3 manage.py migrate

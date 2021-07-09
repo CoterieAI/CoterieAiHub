@@ -1,44 +1,66 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: coterieai-apihub
   name: coterieai-apihub
   namespace: coteriehubs
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: coterieai-apihub
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
   template:
     metadata:
       labels:
         app: coterieai-apihub
     spec:
+      serviceAccountName: coterieai
       containers:
         - image: coterieaihub-gitops
           imagePullPolicy: IfNotPresent
           name: coterieaihub-gitops
----
-apiVersion: autoscaling/v2beta1
-kind: HorizontalPodAutoscaler
-metadata:
-  name: coterieai-apihub
-  namespace: coteriehubs
-spec:
-  maxReplicas: 3
-  metrics:
-    - resource:
-        name: cpu
-        targetAverageUtilization: 80
-      type: Resource
-  minReplicas: 1
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: coterieai-apihub
+          env:
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: django-secret
+                key: username
+          - name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: django-secret
+                key: password
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: django-secret
+                key: database
+              # [END cloudsql_secrets]
+          ports:
+          - containerPort: 8000
+
+        # [START proxy_container]
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.16
+          name: cloudsql-proxy
+          command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                    "-instances=micro-eye-300714:us-central1:tests=tcp:3306",
+                    "-credential_file=/secrets/cloudsql/credentials.json"]
+          volumeMounts:
+            - name: cloudsql-oauth-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+            - name: ssl-certs
+              mountPath: /etc/ssl/certs
+            - name: cloudsql
+              mountPath: /cloudsql
+        # [END proxy_container] 
+        # [START volumes]
+        volumes:
+          - name: cloudsql-oauth-credentials
+            secret:
+              secretName: cloudsql-oauth-credentials
+          - name: ssl-certs
+            hostPath:
+              path: /etc/ssl/certs
+          - name: cloudsql
+            emptyDir: {}
+        # [END volumes]        
+  # [END kubernetes_deployment]
