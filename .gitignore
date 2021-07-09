@@ -5,3 +5,4 @@ venv
 __pycache__
 coterie-app/credentials/coterieai-project-2dbda6f3219a.json
 coterie-app/gke_setup/setup_template.sh
+dep.yaml
