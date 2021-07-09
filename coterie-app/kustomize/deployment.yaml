@@ -53,14 +53,14 @@ spec:
               mountPath: /cloudsql
         # [END proxy_container] 
         # [START volumes]
-          volumes:
-            - name: cloudsql-oauth-credentials
-              secret:
-                secretName: cloudsql-oauth-credentials
-            - name: ssl-certs
-              hostPath:
-                path: /etc/ssl/certs
-            - name: cloudsql
-              emptyDir: {}
+      volumes:
+      - name: cloudsql-oauth-credentials
+        secret:
+          secretName: cloudsql-oauth-credentials
+      - name: ssl-certs
+        hostPath:
+            path: /etc/ssl/certs
+      - name: cloudsql
+        emptyDir: {}
         # [END volumes]        
   # [END kubernetes_deployment]
