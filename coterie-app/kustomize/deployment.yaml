@@ -41,7 +41,7 @@ spec:
         - image: gcr.io/cloudsql-docker/gce-proxy:1.16
           name: cloudsql-proxy
           command: ["/cloud_sql_proxy", "--dir=/cloudsql",
-                    "-instances=micro-eye-300714:us-central1:tests=tcp:3306",
+                    "-instances=coterieai-project:us-central1:coterie=tcp:3306",
                     "-credential_file=/secrets/cloudsql/credentials.json"]
           volumeMounts:
             - name: cloudsql-oauth-credentials
