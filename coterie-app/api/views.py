@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer, SeldonDeploymentSerializer, DeploymentSerializer
 from django.db.models import Q
 from .models import Team, Enrollments, Project, AiModel, Deployment
-from .utils import Util, Status as STATUS, deploy_to_seldon, create_job
+from .utils import Util, Status as STATUS, deploy_to_seldon, create_job, MailSender
 import jwt
 import uuid
 import urllib3
@@ -28,9 +28,11 @@ from google.oauth2 import service_account
 # Create your views here.
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-credentials = service_account.Credentials.from_service_account_file(settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=settings.SCOPES)
+credentials = service_account.Credentials.from_service_account_file(
+    settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=settings.SCOPES)
 cluster_manager_client = ClusterManagerClient(credentials=credentials)
-cluster = cluster_manager_client.get_cluster(settings.PROJECT_ID, settings.ZONE, settings.CLUSTER_ID)
+cluster = cluster_manager_client.get_cluster(
+    settings.PROJECT_ID, settings.ZONE, settings.CLUSTER_ID)
 configuration = client.Configuration()
 configuration.host = "https://"+cluster.endpoint+":443"
 configuration.verify_ssl = False
@@ -56,7 +58,7 @@ class TeamListApiView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(owner=self.request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     def get(self, request):
         data = self.get_queryset()
         serializer = self.serializer_class(data, many=True)
@@ -65,7 +67,8 @@ class TeamListApiView(GenericAPIView):
 
 class TeamDetailApiView(GenericAPIView):
     serializer_class = TeamSerializer
-    permission_classes = (permissions.IsAuthenticated, hasTeamDetailPermissions)
+    permission_classes = (permissions.IsAuthenticated,
+                          hasTeamDetailPermissions)
     name = 'team-detail'
     lookup_field = 'team_id'
 
@@ -75,21 +78,22 @@ class TeamDetailApiView(GenericAPIView):
             serializer = self.serializer_class(team)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Team.DoesNotExist:
-            return Response({"error":"team not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "team not found"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-    
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
     def patch(self, request, *args, **kwargs):
         try:
             team = Team.objects.get(id=kwargs['team_id'])
-            serializer = self.serializer_class(team, data=request.data, partial=True)
+            serializer = self.serializer_class(
+                team, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Team.DoesNotExist:
             return Response({"error": "Team not found"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
         try:
@@ -104,18 +108,17 @@ class TeamDetailApiView(GenericAPIView):
         except Team.DoesNotExist:
             return Response({"error": "team does not exist"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ProjectListView(GenericAPIView):
-    #this view handles project listing and creation for a particular team
+    # this view handles project listing and creation for a particular team
     serializer_class = ProjectSerializer
     permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor)
     queryset = Project.objects.all()
 
     def get(self, request, *args, **kwargs):
-        params = kwargs # -> {'team_id': 1}
+        params = kwargs  # -> {'team_id': 1}
         projects = Project.objects.filter(team=params['team_id'])
         serializer = ProjectSerializer(projects, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -128,46 +131,48 @@ class ProjectListView(GenericAPIView):
             serializer.is_valid(raise_exception=True)
             serializer.save(creator=request.user, team=team)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response({"error":"error creating project"}, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response({"error": "error creating project"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProjectDetailView(GenericAPIView):
-    #this view handles project listing and creation for a particular team
+    # this view handles project listing and creation for a particular team
     serializer_class = ProjectSerializer
     permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor)
     lookup_field = 'id'
-    queryset = Project.objects.all() 
+    queryset = Project.objects.all()
 
     def get(self, request, *args, **kwargs):
-        params = kwargs # -> {'team_id': 1, 'id': 1}
+        params = kwargs  # -> {'team_id': 1, 'id': 1}
         try:
-            project = Project.objects.get(id=params['id'], team=params['team_id'])
+            project = Project.objects.get(
+                id=params['id'], team=params['team_id'])
             serializer = self.serializer_class(project)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except:
-            return Response({"error":"project not found"}, status=status.HTTP_404_NOT_FOUND)
-    
+            return Response({"error": "project not found"}, status=status.HTTP_404_NOT_FOUND)
+
     def patch(self, request, *args, **kwargs):
-        params = kwargs # -> {'team_id': 1, 'id': 1}
+        params = kwargs  # -> {'team_id': 1, 'id': 1}
 
         try:
-            project = Project.objects.get(id=params['id'], team=params['team_id'])
+            project = Project.objects.get(
+                id=params['id'], team=params['team_id'])
         except Project.DoesNotExist:
             return Response({"error": "Project does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.serializer_class(project, data=request.data, partial=True)
+        serializer = self.serializer_class(
+            project, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def delete(self, request, *args, **kwargs):
         params = kwargs
         try:
             project = Project.objects.get(id=params['id'])
         except Project.DoesNotExist:
             return Response({"error": "Project does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
+
         deleted = project.delete()
         msg = {}
         if deleted:
@@ -175,7 +180,6 @@ class ProjectDetailView(GenericAPIView):
         else:
             msg["failure"] = "Delete failed"
         return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
-        
 
 
 class TeamInviteListAPIView(GenericAPIView):
@@ -185,35 +189,38 @@ class TeamInviteListAPIView(GenericAPIView):
     def get_queryset(self):
         user = self.request.user
         return Enrollments.objects.filter(team__owner=user.id)
-    
+
     def post(self, request, *args, **kwargs):
-        #validate serializer
-        #get user object from email
-        #save serilizer and fill user field with user object
-        #use serializer data to send email
-        serializer = self.serializer_class(data=request.data, context={"request":request})
+        # validate serializer
+        # get user object from email
+        # save serilizer and fill user field with user object
+        # use serializer data to send email
+        serializer = self.serializer_class(
+            data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data.get('email')
         user = User.objects.get(email=email)
         serializer.save(user=user)
 
         user_data = serializer.data
-        #{'id': 4, 'user': 3, 'team': 1, 'role': <Roles.VIEWER: 'VIEWER'>, 'status': 'PENDING'}
+        # {'id': 4, 'user': 3, 'team': 1, 'role': <Roles.VIEWER: 'VIEWER'>, 'status': 'PENDING'}
 
-        
-        team =Team.objects.get(id=user_data['team'])
+        team = Team.objects.get(id=user_data['team'])
         role = str(user_data['role']).lower()
         inviter = request.user.username
-        payload ={'user':user_data['user'], 'team':user_data['team']}
-        token = jwt.encode(payload, settings.JWT_SECRET, algorithm='HS256').decode('utf-8')
+        payload = {'user': user_data['user'], 'team': user_data['team']}
+        token = jwt.encode(payload, settings.JWT_SECRET,
+                           algorithm='HS256')  # .decode('utf-8')
         current_site = get_current_site(request).domain
         relativeLink = reverse('invite-acceptance')
         abs_url = 'http://'+current_site+relativeLink+'?token='+token
-        email_body = "Hi "+ " " + user.username +",\n " + inviter + " invited you to join "+ team.name + " as " + role + " follow the link below to accept invitation. link expires in 7 days \n" + abs_url
+        email_body = "Hi " + " " + user.username + ",\n " + inviter + " invited you to join " + team.name + \
+            " as " + role + " follow the link below to accept invitation. link expires in 7 days \n" + abs_url
 
-        data ={'email_body':email_body, 'to_email':user.email, 'email_subject':'Team invitation'}
+        data = {'email_body': email_body, 'to_email': user.email,
+                'email_subject': 'Team invitation'}
 
-        Util.send_email(data)
+        MailSender.send_email(data)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get(self, request, *args, **kwargs):
@@ -234,8 +241,8 @@ class TeamInviteDetailAPIView(GenericAPIView):
         except Enrollments.DoesNotExist:
             return Response({"error": "team member not found"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.serializer_class(enrollment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -247,21 +254,23 @@ class TeamInviteDetailAPIView(GenericAPIView):
             return Response({"error": "team member not found"}, status=status.HTTP_404_NOT_FOUND)
 
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = self.serializer_class(enrollment, data=request.data, partial=True)
+        serializer = self.serializer_class(
+            enrollment, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def delete(self, request, invite_id):
         user = self.request.user
 
         try:
-            enrollment = Enrollments.objects.get(id=invite_id, team__owner=user.id)
-        except enrollment.DoesNotExist:
+            enrollment = Enrollments.objects.get(
+                id=invite_id, team__owner=user.id)
+        except Enrollments.DoesNotExist:
             return Response({"error": "team memeber does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
+
         deleted = enrollment.delete()
         msg = {}
         if deleted:
@@ -271,17 +280,19 @@ class TeamInviteDetailAPIView(GenericAPIView):
         return Response(data=msg, status=status.HTTP_204_NO_CONTENT)
 
 
-
 class AcceptEmailInvite(APIView):
     serializer_class = EmailVerificationSerializer
-    token_param_config = openapi.Parameter('token', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
+    token_param_config = openapi.Parameter(
+        'token', in_=openapi.IN_QUERY, description='Description', type=openapi.TYPE_STRING)
 
     @swagger_auto_schema(manual_parameters=[token_param_config])
     def get(self, request):
         token = request.GET.get('token')
         try:
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithm='HS256')
-            invite = Enrollments.objects.get(user=payload['user'], team=payload['team'])
+            payload = jwt.decode(
+                token, settings.JWT_SECRET, algorithms=['HS256'])
+            invite = Enrollments.objects.get(
+                user=payload['user'], team=payload['team'])
             # incase a user follows the url twice:
             if invite.status == STATUS.PENDING:
                 invite.status = STATUS.ACCEPTED
@@ -311,16 +322,18 @@ class AiModelDetailView(RetrieveUpdateDestroyAPIView):
 
 class JobStatus(GenericAPIView):
     serializer_class = SeldonDeploymentSerializer
+
     def get(self, *args, **kwargs):
-        
-        #get the job name
+
+        # get the job name
         #name = kwargs['job_name']
-        #config.load_kube_config(path.join(path.dirname(__file__),'kube-config.yaml'))
-       
-        #query the api for status
-        #api/<int:team_id>/<int:proj_id>/deployments/<int:id>/status
-        if Deployment.objects.filter(id=kwargs['id'],project=kwargs['proj_id']).exists():
-            deployment = Deployment.objects.get(id=kwargs['id'],project=kwargs['proj_id'])
+        # config.load_kube_config(path.join(path.dirname(__file__),'kube-config.yaml'))
+
+        # query the api for status
+        # api/<int:team_id>/<int:proj_id>/deployments/<int:id>/status
+        if Deployment.objects.filter(id=kwargs['id'], project=kwargs['proj_id']).exists():
+            deployment = Deployment.objects.get(
+                id=kwargs['id'], project=kwargs['proj_id'])
             name = deployment.deployment_id
             try:
                 api = client.CustomObjectsApi()
@@ -343,11 +356,11 @@ class JobStatus(GenericAPIView):
         return Response({"error": "job does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
 
-#detail -> api/team_id/proj_id/deployments/id
+# detail -> api/team_id/proj_id/deployments/id
 class DeploymentApiView(GenericAPIView):
     serializer_class = DeploymentSerializer
     permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor)
-    
+
     def get_queryset(self):
         return Deployment.objects.all()
 
@@ -356,21 +369,21 @@ class DeploymentApiView(GenericAPIView):
         serializer = self.serializer_class(deployments, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         if Project.objects.filter(id=kwargs['proj_id'], team=kwargs['team_id']).exists():
-            project = Project.objects.get(id=kwargs['proj_id'], team=kwargs['team_id'])
+            project = Project.objects.get(
+                id=kwargs['proj_id'], team=kwargs['team_id'])
             serializer.is_valid(raise_exception=True)
             serializer.save(project=project, creator=request.user)
             return Response(data=serializer.data, status=status.HTTP_201_CREATED)
-        return Response(data={"error":"bad request"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data={"error": "bad request"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeploymentDetailApiView(GenericAPIView):
     serializer_class = DeploymentSerializer
-    permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor) 
-    
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrContributor)
+
     def get_queryset(self):
         return Deployment.objects.all()
 
@@ -380,21 +393,22 @@ class DeploymentDetailApiView(GenericAPIView):
             serializer = self.serializer_class(deployment)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Deployment.DoesNotExist:
-            return Response({"error":"deployment not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "deployment not found"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-    
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
     def patch(self, request, *args, **kwargs):
         try:
             deployment = self.get_queryset().get(id=kwargs['id'])
-            serializer = self.serializer_class(deployment, data=request.data, partial=True)
+            serializer = self.serializer_class(
+                deployment, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Deployment.DoesNotExist:
-            return Response({"error":"deployment not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "deployment not found"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
         try:
@@ -409,4 +423,4 @@ class DeploymentDetailApiView(GenericAPIView):
         except Deployment.DoesNotExist:
             return Response({"error": "deployment does not exist"}, status=status.HTTP_404_NOT_FOUND)
         except:
-            return Response({"error":"invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "invalid request"}, status=status.HTTP_400_BAD_REQUEST)
