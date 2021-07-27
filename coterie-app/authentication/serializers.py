@@ -79,3 +79,11 @@ class CustomTokenObtainPairSerializers(TokenObtainPairSerializer):
         token = super().get_token(user)
         token['is_superuser'] = user.is_superuser
         return token
+
+
+class UserSerializer(serializers.ModelSerializer):
+    # dob = serializers.DateField(format="%Y-%m-%d", required=False)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', ]
