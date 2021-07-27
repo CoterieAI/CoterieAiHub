@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from .serializers import TeamSerializer, TeamInviteSerializer, TeamMemberUpdateSerializer, EmailVerificationSerializer, ProjectSerializer, AiModelSerializer, SeldonDeploymentSerializer, DeploymentSerializer
 from django.db.models import Q
 from .models import Team, Enrollments, Project, AiModel, Deployment
-from .utils import Util, Status as STATUS, deploy_to_seldon, create_job, MailSender
+from .utils import Util, Status as STATUS, deploy_to_seldon, create_job, MailSender, MailClient
 import jwt
 import uuid
 import urllib3
@@ -220,7 +220,7 @@ class TeamInviteListAPIView(GenericAPIView):
         data = {'email_body': email_body, 'to_email': user.email,
                 'email_subject': 'Team invitation'}
 
-        MailSender.send_email(data)
+        MailClient.send_email(data)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get(self, request, *args, **kwargs):

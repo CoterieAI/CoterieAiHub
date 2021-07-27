@@ -223,3 +223,6 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 
 }
+
+# Remote Mail Service
+MAIL_FILE_SERVICE_URL = os.environ.get('MAIL_FILE_SERVICE')

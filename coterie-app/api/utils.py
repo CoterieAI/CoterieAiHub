@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.mail import EmailMessage
+import requests
 import sys
 import time
 import json
@@ -9,6 +10,7 @@ from kafka import KafkaProducer
 from django.conf import settings
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, From, To, Subject, PlainTextContent, HtmlContent, SendGridException
+from django.conf import settings
 
 
 class MailSender:
@@ -138,3 +140,10 @@ def create_job(name):
     template["spec"]["name"] = name
 
     return template
+
+
+class MailClient:
+    @staticmethod
+    def send_email(data):
+        res = requests.post(settings.MAIL_FILE_SERVICE_URL, data=data)
+        return res
