@@ -3,8 +3,9 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import SignUpSerializer, ChangePasswordSerializer, allUsersSerializer, CustomTokenObtainPairSerializers
+from .serializers import SignUpSerializer, ChangePasswordSerializer, allUsersSerializer, CustomTokenObtainPairSerializers, UserSerializer
 from .models import User
+from .permissions import IsOwnerOrReadOnly
 
 
 class RegisterView(GenericAPIView):
@@ -46,3 +47,32 @@ class AllUsers(ListAPIView):
     serializer_class = allUsersSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAdminUser, )
+
+
+class UserProfiles(ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return User.objects.all()
+
+
+class UserProfile(GenericAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return User.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        user = self.get_queryset().get(id=request.user.id)
+        Serializer = self.serializer_class(user)
+        return Response(Serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, *args, **kwargs):
+        user_obj = self.get_queryset().get(id=request.user.id)
+        serializer = self.serializer_class(
+            data=request.data, instance=user_obj)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
