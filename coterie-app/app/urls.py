@@ -23,13 +23,13 @@ from drf_yasg import openapi
 
 # TODO: adds AnnotationList and AnnotationDetail endpoint.
 schema_view = get_schema_view(
-   openapi.Info(
-      title="CoterieAi API",
-      default_version='v1',
-      description="CoterieAi API description",
-      license=openapi.License(name="CoterieAi License"),
-   ),
-   public=True,
+    openapi.Info(
+        title="CoterieAi API",
+        default_version='v1',
+        description="CoterieAi API description",
+        license=openapi.License(name="CoterieAi License"),
+    ),
+    public=True,
 )
 
 urlpatterns = [
@@ -37,5 +37,6 @@ urlpatterns = [
     path('auth/', include('authentication.urls')),
     path('api/', include('api.urls')),
     path('api-auth/', include('rest_framework.urls')),
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('', schema_view.with_ui('swagger', cache_timeout=0),
+         name='schema-swagger-ui'),
 ]
