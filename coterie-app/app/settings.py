@@ -223,3 +223,10 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 
 }
+
+# Remote Mail Service
+MAIL_FILE_SERVICE_URL = os.environ.get('MAIL_FILE_SERVICE')
+MAIL_SERVICE_URL = os.environ.get(
+    'MAIL_SERVER', r'https://savy-servie.herokuapp.com/mails/basic/')
+FILE_SERVICE_URL = os.environ.get(
+    'FILE_SERVER', r'https://savy-servie.herokuapp.com/file-uploads/file-upload/')
