@@ -3,9 +3,10 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import SignUpSerializer, ChangePasswordSerializer, allUsersSerializer, CustomTokenObtainPairSerializers, UserSerializer
+from .serializers import ProfileUpdateSerializer, SignUpSerializer, ChangePasswordSerializer, allUsersSerializer, CustomTokenObtainPairSerializers, UserSerializer
 from .models import User
 from .permissions import IsOwnerOrReadOnly
+from rest_framework.parsers import MultiPartParser, FileUploadParser
 
 
 class RegisterView(GenericAPIView):
@@ -60,9 +61,15 @@ class UserProfiles(ListAPIView):
 class UserProfile(GenericAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    parser_classes = (MultiPartParser, FileUploadParser)
 
     def get_queryset(self):
         return User.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method == 'PUT':
+            return ProfileUpdateSerializer
+        return UserSerializer
 
     def get(self, request, *args, **kwargs):
         user = self.get_queryset().get(id=request.user.id)
@@ -71,7 +78,8 @@ class UserProfile(GenericAPIView):
 
     def put(self, request, *args, **kwargs):
         user_obj = self.get_queryset().get(id=request.user.id)
-        serializer = self.serializer_class(
+        update_serializer = self.get_serializer_class()
+        serializer = update_serializer(
             data=request.data, instance=user_obj)
         serializer.is_valid(raise_exception=True)
         serializer.save()

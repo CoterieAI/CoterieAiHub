@@ -145,5 +145,5 @@ def create_job(name):
 class MailClient:
     @staticmethod
     def send_email(data):
-        res = requests.post(settings.MAIL_FILE_SERVICE_URL, data=data)
+        res = requests.post(settings.MAIL_SERVICE_URL, data=data)
         return res

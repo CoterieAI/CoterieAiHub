@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .utils import upload_file
 
 
 class SignUpSerializer(serializers.ModelSerializer):
@@ -87,3 +88,39 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', ]
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    picture = serializers.ImageField(required=False, write_only=True)
+    username = serializers.CharField(max_length=256, required=False)
+    first_name = serializers.CharField(max_length=256, required=False)
+    last_name = serializers.CharField(max_length=256, required=False)
+    profile_pic = serializers.URLField(read_only=True, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'picture', 'username',
+                  'first_name', 'last_name', 'profile_pic']
+
+    def validate(self, attrs):
+        if attrs.get('picture', None):
+            picture = attrs['picture']
+            payload = upload_file(picture)
+            if payload:
+                attrs['profile_pic'] = payload['file_upload']
+            else:
+                raise serializers.ValidationError(
+                    "Unable to handle file upload!")
+        return super().validate(attrs)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('picture', None)
+        instance.first_name = validated_data.get(
+            'first_name', instance.first_name)
+        instance.last_name = validated_data.get(
+            'last_name', instance.last_name)
+        instance.username = validated_data.get(
+            'username', instance.username)
+        instance.profile_pic = validated_data.get(
+            'profile_pic', instance.profile_pic)
+        return super().update(instance, validated_data)

@@ -2,7 +2,8 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
+from django.contrib.auth.models import (
+    AbstractBaseUser, BaseUserManager, PermissionsMixin)
 
 # Create your models here.
 
@@ -22,7 +23,7 @@ class UserManager(BaseUserManager):
         user.save()
 
         return user
-    
+
     def create_superuser(self, username, email, password):
         if password is None:
             raise TypeError("Password should not be none")
@@ -37,12 +38,12 @@ class UserManager(BaseUserManager):
         return user
 
 
-
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=255, unique=True, db_index=True)
     email = models.CharField(max_length=255, unique=True, db_index=True)
     first_name = models.CharField(max_length=400)
     last_name = models.CharField(max_length=400)
+    profile_pic = models.URLField(blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
