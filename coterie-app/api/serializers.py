@@ -15,6 +15,11 @@ class TeamMemberSerializer(serializers.ModelSerializer):
         fields = ['user', 'role', 'status']
 
 
+# class TeamUserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ['']
+
 class TeamSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
 

@@ -1,4 +1,4 @@
-from rest_framework.generics import GenericAPIView, ListAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveAPIView
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
@@ -53,6 +53,15 @@ class AllUsers(ListAPIView):
 class UserProfiles(ListAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return User.objects.all()
+
+
+class UserProfilesById(RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = 'id'
 
     def get_queryset(self):
         return User.objects.all()
