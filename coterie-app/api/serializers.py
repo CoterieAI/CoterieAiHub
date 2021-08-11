@@ -10,9 +10,11 @@ from authentication.models import User
 class TeamMemberSerializer(serializers.ModelSerializer):
     #team = serializers.CharField(source='team.name')
     #user = serializers.CharField(source='user.id')
+    email = serializers.CharField(source='user.email')
+
     class Meta:
         model = Enrollments
-        fields = ['user', 'role', 'status']
+        fields = ['user', 'email', 'role', 'status']
 
 
 # class TeamUserSerializer(serializers.ModelSerializer):
@@ -37,11 +39,12 @@ class TeamSerializer(serializers.ModelSerializer):
 
 class TeamInviteSerializer(serializers.ModelSerializer):
     role = serializers.ChoiceField(choices=Roles, default=default_role)
-    email = serializers.EmailField(write_only=True)
+    email = serializers.ReadOnlyField(source='user.email')  # write_only=True
+    invite_email = serializers.EmailField(write_only=True)
 
     class Meta:
         model = Enrollments
-        fields = ['id', 'email', 'user', 'team', 'role',
+        fields = ['id', 'email', 'invite_email', 'user', 'team', 'role',
                   'status', 'created_at', 'updated_at']
         extra_kwargs = {'status': {'read_only': True},
                         'user': {'read_only': True}}
@@ -51,14 +54,14 @@ class TeamInviteSerializer(serializers.ModelSerializer):
         # if not team.owner == self.context.get('request').user:
         #    raise serializers.ValidationError({"error":"only team creators can make invites"})
 
-        if not User.objects.filter(email=attrs['email']).exists():
+        if not User.objects.filter(email=attrs['invite_email']).exists():
             raise serializers.ValidationError(
                 {"error": "no user matching this email was found"})
         return attrs
 
     def create(self, validated_data):
         # eliminate the email filed as it is not in the model.
-        validated_data.pop('email', None)
+        validated_data.pop('invite_email', None)
 
         return super().create(validated_data)
 
