@@ -198,7 +198,7 @@ class TeamInviteListAPIView(GenericAPIView):
         serializer = self.serializer_class(
             data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email')
+        email = serializer.validated_data.get('invite_email')
         user = User.objects.get(email=email)
         serializer.save(user=user)
 
