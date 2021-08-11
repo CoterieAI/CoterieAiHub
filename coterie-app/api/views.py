@@ -262,12 +262,13 @@ class TeamInviteDetailAPIView(GenericAPIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def delete(self, request, invite_id):
+    def delete(self, request, *args, **kwargs):
         user = self.request.user
-
+        invite_id = kwargs['invite_id']
+        team_id = kwargs['team_id']
         try:
             enrollment = Enrollments.objects.get(
-                id=invite_id, team__owner=user.id)
+                id=invite_id, team__id=team_id)
         except Enrollments.DoesNotExist:
             return Response({"error": "team memeber does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
