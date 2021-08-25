@@ -33,14 +33,14 @@ spec:
               secretKeyRef:
                 name: django-secret
                 key: database
-              # [END cloudsql_secrets]
+              # [END cloudsql_secrets] 3"--dir=/cloudsql"
           ports:
           - containerPort: 8000
 
         # [START proxy_container]
         - image: gcr.io/cloudsql-docker/gce-proxy:1.16
           name: cloudsql-proxy
-          command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+          command: ["/cloud_sql_proxy",
                     "-instances=coterieai-project:us-central1:coterie=tcp:3306",
                     "-credential_file=/secrets/cloudsql/credentials.json"]
           volumeMounts:
