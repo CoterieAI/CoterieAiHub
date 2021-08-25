@@ -3,16 +3,18 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import ProfileUpdateSerializer, SignUpSerializer, ChangePasswordSerializer, allUsersSerializer, CustomTokenObtainPairSerializers, UserSerializer
+from .serializers import ProfileUpdateSerializer, SignUpSerializer, ChangePasswordSerializer, UserProjectListSerializer, allUsersSerializer, CustomTokenObtainPairSerializers, UserSerializer
 from .models import User
 from .permissions import IsOwnerOrReadOnly
 from rest_framework.parsers import MultiPartParser, FileUploadParser
+from drf_yasg.utils import swagger_auto_schema
 
 
 class RegisterView(GenericAPIView):
     serializer_class = SignUpSerializer
     permission_classes = (permissions.AllowAny, )
 
+    @swagger_auto_schema(tags=['Sign_Up'])
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
@@ -28,6 +30,7 @@ class ChangePasswordView(GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = ChangePasswordSerializer
 
+    @swagger_auto_schema(tags=['Profile'])
     def patch(self, request):
         user = User.objects.get(id=request.user.id)
         serializer = self.serializer_class(
@@ -42,12 +45,20 @@ class MyTokenObtainPairView(TokenObtainPairView):
     # login view
     serializer_class = CustomTokenObtainPairSerializers
 
+    @swagger_auto_schema(tags=['Login'])
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
 
 class AllUsers(ListAPIView):
     model = User
     serializer_class = allUsersSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAdminUser, )
+
+    @swagger_auto_schema(tags=['Users'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
 class UserProfiles(ListAPIView):
@@ -57,6 +68,10 @@ class UserProfiles(ListAPIView):
     def get_queryset(self):
         return User.objects.all()
 
+    @swagger_auto_schema(tags=['Users'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
 
 class UserProfilesById(RetrieveAPIView):
     serializer_class = UserSerializer
@@ -65,6 +80,10 @@ class UserProfilesById(RetrieveAPIView):
 
     def get_queryset(self):
         return User.objects.all()
+
+    @swagger_auto_schema(tags=['Users'])
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
 class UserProfile(GenericAPIView):
@@ -80,11 +99,13 @@ class UserProfile(GenericAPIView):
             return ProfileUpdateSerializer
         return UserSerializer
 
+    @swagger_auto_schema(tags=['Profile'])
     def get(self, request, *args, **kwargs):
         user = self.get_queryset().get(id=request.user.id)
         Serializer = self.serializer_class(user)
         return Response(Serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(tags=['Profile'])
     def put(self, request, *args, **kwargs):
         user_obj = self.get_queryset().get(id=request.user.id)
         update_serializer = self.get_serializer_class()
@@ -92,4 +113,18 @@ class UserProfile(GenericAPIView):
             data=request.data, instance=user_obj)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserProjects(GenericAPIView):
+    serializer_class = UserProjectListSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return User.objects.all()
+
+    @swagger_auto_schema(tags=['User_Projects'])
+    def get(self, request, *args, **kwargs):
+        user = self.get_queryset().get(id=request.user.id)
+        serializer = self.serializer_class(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
