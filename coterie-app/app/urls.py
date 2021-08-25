@@ -19,6 +19,7 @@ from django.urls import path, include, re_path
 from django.contrib.auth.views import TemplateView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from ai_models.views import DeploymentApiView, DeploymentDetailApiView, JobStatus
 
 
 # TODO: adds AnnotationList and AnnotationDetail endpoint.
@@ -35,8 +36,14 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
-    path('api/', include('api.urls')),
-    path('api-auth/', include('rest_framework.urls')),
+    path('api/models/', include('ai_models.urls')),
+    path('api/<int:team_id>/<int:proj_id>/deployments/',
+         DeploymentApiView.as_view(), name='deployment-list'),
+    path('api/<int:team_id>/<int:proj_id>/deployments/<int:id>/',
+         DeploymentDetailApiView.as_view(), name='deployments-detail'),
+    path('api/<int:team_id>/<int:proj_id>/deployments/<int:id>/status/',
+         JobStatus.as_view(), name='job-status'),
+    path('api/', include('teams_api.urls')),
     path('', schema_view.with_ui('swagger', cache_timeout=0),
          name='schema-swagger-ui'),
 ]

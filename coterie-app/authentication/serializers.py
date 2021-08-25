@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+from teams_api.models import Project
+from teams_api.serializers import UserProjectSerializer
 from .models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.db.models import Q
 from .utils import upload_file
 
 
@@ -125,3 +128,18 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         instance.profile_pic = validated_data.get(
             'profile_pic', instance.profile_pic)
         return super().update(instance, validated_data)
+
+
+class UserProjectListSerializer(serializers.ModelSerializer):
+    projects = serializers.SerializerMethodField(
+        method_name='get_user_projects')
+
+    def get_user_projects(self, obj):
+        projects = Project.objects.filter(
+            Q(team__members__id=obj.id) | Q(team__owner__id=obj.id)).distinct()
+        serializer = UserProjectSerializer(projects, many=True)
+        return serializer.data
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'profile_pic', 'projects']
