@@ -195,6 +195,10 @@ ZONE = os.environ.get('ZONE')
 CLUSTER_ID = os.environ.get('CLUSTER_ID')
 SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
+# AWS
+K8S_HOST = os.environ.get("K8S_HOST")
+K8S_TOKEN = os.environ.get("TOKEN")
+
 # CORS CONFIG
 CORS_ORIGIN_ALLOW_ALL = True
 

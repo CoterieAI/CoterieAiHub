@@ -21,23 +21,10 @@ from authentication.models import User
 from .custompermissions import IsOwnerOrContributor, hasTeamDetailPermissions, CanInviteUser, IsAdminUserOrReadonly
 from django.utils.encoding import smart_bytes, smart_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from kubernetes import client, config
+#from kubernetes import client
 from kubernetes.client.rest import ApiException
-from google.cloud.container_v1 import ClusterManagerClient
-from google.oauth2 import service_account
+from . import k8s_client as client
 # Create your views here.
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-credentials = service_account.Credentials.from_service_account_file(
-    settings.GOOGLE_APPLICATION_CREDENTIALS, scopes=settings.SCOPES)
-cluster_manager_client = ClusterManagerClient(credentials=credentials)
-cluster = cluster_manager_client.get_cluster(
-    settings.PROJECT_ID, settings.ZONE, settings.CLUSTER_ID)
-configuration = client.Configuration()
-configuration.host = "https://"+cluster.endpoint+":443"
-configuration.verify_ssl = False
-configuration.api_key = {"authorization": "Bearer " + credentials.token}
-client.Configuration.set_default(configuration)
 
 
 class TeamListApiView(GenericAPIView):
