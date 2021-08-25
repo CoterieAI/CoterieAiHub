@@ -43,8 +43,6 @@ spec:
           command: 
             - "/cloud_sql_proxy"
             - "-instances=coterieai-project:us-central1:coterie=tcp:3306"
-          securityContext:
-            runAsNonRoot: true
           volumeMounts:
             - name: cloudsql-oauth-credentials
               mountPath: /secrets/cloudsql
