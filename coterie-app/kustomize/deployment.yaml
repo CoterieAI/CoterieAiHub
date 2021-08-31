@@ -12,7 +12,7 @@ spec:
       labels:
         app: coterieai-apihub
     spec:
-      serviceAccountName: coterieai
+      # serviceAccountName: coterieai
       containers:
         - image: coterieaihub-gitops
           imagePullPolicy: IfNotPresent
