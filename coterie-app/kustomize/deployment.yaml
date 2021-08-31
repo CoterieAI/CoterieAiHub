@@ -37,30 +37,30 @@ spec:
           ports:
           - containerPort: 8000
 
-        # [START proxy_container]
-        - image: gcr.io/cloudsql-docker/gce-proxy:1.20.2
-          name: cloudsql-proxy
-          command: ["/cloud_sql_proxy",
-                    "-instances=coterieai-project:us-central1:coterie=tcp:3306",
-                    "-credential_file=/secrets/cloudsql/credentials.json"]
-          volumeMounts:
-            - name: cloudsql-oauth-credentials
-              mountPath: /secrets/cloudsql
-              readOnly: true
-            - name: ssl-certs
-              mountPath: /etc/ssl/certs
-            - name: cloudsql
-              mountPath: /cloudsql
-        # [END proxy_container] 
-        # [START volumes]
-      volumes:
-      - name: cloudsql-oauth-credentials
-        secret:
-          secretName: cloudsql-oauth-credentials
-      - name: ssl-certs
-        hostPath:
-          path: /etc/ssl/certs
-      - name: cloudsql
-        emptyDir: {}
-        # [END volumes]        
-  # [END kubernetes_deployment]
+  #       # [START proxy_container]
+  #       - image: gcr.io/cloudsql-docker/gce-proxy:1.20.2
+  #         name: cloudsql-proxy
+  #         command: ["/cloud_sql_proxy",
+  #                   "-instances=coterieai-project:us-central1:coterie=tcp:3306",
+  #                   "-credential_file=/secrets/cloudsql/credentials.json"]
+  #         volumeMounts:
+  #           - name: cloudsql-oauth-credentials
+  #             mountPath: /secrets/cloudsql
+  #             readOnly: true
+  #           - name: ssl-certs
+  #             mountPath: /etc/ssl/certs
+  #           - name: cloudsql
+  #             mountPath: /cloudsql
+  #       # [END proxy_container] 
+  #       # [START volumes]
+  #     volumes:
+  #     - name: cloudsql-oauth-credentials
+  #       secret:
+  #         secretName: cloudsql-oauth-credentials
+  #     - name: ssl-certs
+  #       hostPath:
+  #         path: /etc/ssl/certs
+  #     - name: cloudsql
+  #       emptyDir: {}
+  #       # [END volumes]        
+  # # [END kubernetes_deployment]
