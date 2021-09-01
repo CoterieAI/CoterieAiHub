@@ -8,6 +8,6 @@ metadata:
 spec:
   ports:
   - port: 8000
-    name: http
+    name: http-web
   selector:
     app: coterieai-apihub

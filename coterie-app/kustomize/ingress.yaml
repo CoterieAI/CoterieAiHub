@@ -9,7 +9,7 @@ spec:
   servers:
   - port:
       number: 5000
-      name: db
+      name: http
       protocol: HTTP
     hosts:
     - "*"
