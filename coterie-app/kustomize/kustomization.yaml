@@ -8,4 +8,4 @@ namespace: coteriehubs
 images:
 - name: coterieaihub-gitops
   newName: gcr.io/coterieai-project/coterieaihub/api
-  newTag: 85537cb48274af66fc8ffa2f3374d20479c73e97
+  newTag: c5ff3544a9d11b220eb86115fa24858ff857e6c2
